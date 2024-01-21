@@ -1,0 +1,193 @@
+-- Creating a Database
+CREATE DATABASE IF NOT EXISTS LibraryDB;
+
+-- Switching to the LibraryDB Database
+USE LibraryDB;
+
+-- Creating a Table for Books
+CREATE TABLE IF NOT EXISTS Books (
+    BookID INT PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    Author VARCHAR(100),
+    PublicationYear INT,
+    ISBN VARCHAR(20) UNIQUE
+);
+
+-- Inserting Data into the Books Table
+INSERT INTO Books (BookID, Title, Author, PublicationYear, ISBN)
+VALUES
+    (1, 'The Catcher in the Rye', 'J.D. Salinger', 1951, '978-0-316-76948-0'),
+    (2, 'To Kill a Mockingbird', 'Harper Lee', 1960, '978-0-06-112008-4'),
+    (3, '1984', 'George Orwell', 1949, '978-0-452-28423-4');
+
+-- Creating a Table for Library Members
+CREATE TABLE IF NOT EXISTS Members (
+    MemberID INT PRIMARY KEY,
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
+    Email VARCHAR(100) UNIQUE
+);
+
+-- Inserting Data into the Members Table
+INSERT INTO Members (MemberID, FirstName, LastName, Email)
+VALUES
+    (1, 'John', 'Doe', 'john.doe@example.com'),
+    (2, 'Jane', 'Smith', 'jane.smith@example.com'),
+    (3, 'Bob', 'Johnson', 'bob.johnson@example.com');
+
+-- Creating a Table for Borrowed Books
+CREATE TABLE IF NOT EXISTS BorrowedBooks (
+    BorrowID INT PRIMARY KEY,
+    BookID INT,
+    MemberID INT,
+    BorrowDate DATE,
+    ReturnDate DATE,
+    FOREIGN KEY (BookID) REFERENCES Books(BookID),
+    FOREIGN KEY (MemberID) REFERENCES Members(MemberID)
+);
+
+-- Inserting Data into the BorrowedBooks Table
+INSERT INTO BorrowedBooks (BorrowID, BookID, MemberID, BorrowDate, ReturnDate)
+VALUES
+    (1, 1, 1, '2024-01-01', '2024-01-15'),
+    (2, 2, 2, '2024-02-01', '2024-02-15'),
+    (3, 3, 3, '2024-03-01', NULL);
+
+-- Updating Data in the Books Table
+UPDATE Books
+SET Author = 'Jerome David Salinger'
+WHERE BookID = 1;
+
+-- Deleting Data from the Members Table
+DELETE FROM Members
+WHERE MemberID = 3;
+
+-- Querying Data to Retrieve Information
+-- Select all books and their authors
+SELECT Title, Author
+FROM Books;
+
+-- Select books published after 1950
+SELECT Title, PublicationYear
+FROM Books
+WHERE PublicationYear > 1950;
+
+-- Select borrowed books with member information
+SELECT BorrowedBooks.BorrowID, Books.Title, Members.FirstName, Members.LastName
+FROM BorrowedBooks
+JOIN Books ON BorrowedBooks.BookID = Books.BookID
+JOIN Members ON BorrowedBooks.MemberID = Members.MemberID;
+
+-- Additional Query with SQL Operators
+-- Select books with ISBN starting with '978'
+SELECT Title, ISBN
+FROM Books
+WHERE ISBN LIKE '978%';
+
+-- Select books published between 1950 and 1960
+SELECT Title, PublicationYear
+FROM Books
+WHERE PublicationYear BETWEEN 1950 AND 1960;
+
+-- Select books not authored by 'Harper Lee'
+SELECT Title, Author
+FROM Books
+WHERE Author <> 'Harper Lee';
+
+-- Aggregate Functions
+-- Calculate the total number of books
+SELECT COUNT(*) AS TotalBooks
+FROM Books;
+
+-- Calculate the average publication year of books
+SELECT AVG(PublicationYear) AS AvgPublicationYear
+FROM Books;
+
+-- Find the maximum publication year
+SELECT MAX(PublicationYear) AS MaxPublicationYear
+FROM Books;
+
+-- Find the minimum publication year
+SELECT MIN(PublicationYear) AS MinPublicationYear
+FROM Books;
+
+-- Calculate the total number of books per author
+SELECT Author, COUNT(*) AS BookCount
+FROM Books
+GROUP BY Author;
+
+-- Find the author with the most books
+SELECT Author, COUNT(*) AS BookCount
+FROM Books
+GROUP BY Author
+ORDER BY BookCount DESC
+LIMIT 1;
+
+-- Sorting (ASC and DESC)
+-- Select books and their authors in ascending order of publication year
+SELECT Title, Author, PublicationYear
+FROM Books
+ORDER BY PublicationYear ASC;
+
+-- Select books and their authors in descending order of publication year
+SELECT Title, Author, PublicationYear
+FROM Books
+ORDER BY PublicationYear DESC;
+
+-- Select the first 5 books in alphabetical order by title
+SELECT Title, Author
+FROM Books
+ORDER BY Title ASC
+LIMIT 5;
+
+-- Joins (INNER, LEFT, RIGHT, FULL)
+-- Select books and their borrowed information using INNER JOIN
+SELECT Books.Title, BorrowedBooks.BorrowDate, BorrowedBooks.ReturnDate
+FROM Books
+INNER JOIN BorrowedBooks ON Books.BookID = BorrowedBooks.BookID;
+
+-- Subqueries
+-- Select members who borrowed a book with a specific ISBN using a subquery
+SELECT FirstName, LastName
+FROM Members
+WHERE MemberID IN (SELECT MemberID FROM BorrowedBooks WHERE BookID IN (SELECT BookID FROM Books WHERE ISBN = '978-0-316-76948-0'));
+
+-- Views
+-- Create a view for available books
+CREATE OR REPLACE VIEW AvailableBooks AS
+SELECT BookID, Title
+FROM Books
+WHERE BookID NOT IN (SELECT BookID FROM BorrowedBooks WHERE ReturnDate IS NULL);
+
+-- Query the view
+SELECT * FROM AvailableBooks;
+
+-- Transactions
+-- Start a transaction
+START TRANSACTION;
+
+-- Update multiple tables within a transaction
+UPDATE Books SET PublicationYear = 1952 WHERE BookID = 1;
+UPDATE BorrowedBooks SET ReturnDate = '2024-01-20' WHERE BookID = 1;
+
+-- Commit the transaction
+COMMIT;
+
+-- Indexes
+-- Create an index on the Author column
+CREATE INDEX IF NOT EXISTS idx_author ON Books(Author);
+
+-- Query using the index
+SELECT Title FROM Books WHERE Author = 'J.D. Salinger';
+
+-- Stored Procedures
+-- Create a stored procedure to get member information
+DELIMITER //
+CREATE OR REPLACE PROCEDURE GetMemberInfo(IN memberID INT)
+BEGIN
+    SELECT * FROM Members WHERE MemberID = memberID;
+END //
+DELIMITER ;
+
+-- Call the stored procedure
+CALL GetMemberInfo(1);
